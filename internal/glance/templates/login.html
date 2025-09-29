@@ -10,6 +10,7 @@
 {{- define "document-head-after" }}
 <link rel="stylesheet" href='{{ .App.StaticAssetPath "css/login.css" }}'>
 <script type="module" src='{{ .App.StaticAssetPath "js/login.js" }}'></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 {{- end }}
 
 {{- define "document-body" }}
@@ -37,6 +38,19 @@
                     <button class="toggle-password-visibility" id="toggle-password-visibility" tabindex="-1"></button>
                 </div>
             </div>
+
+            <!-- Turnstile 小组件 -->
+             {{ if .TurnstileSiteKey }}
+            <div class="animate-entrance margin-top-20">
+                <div class="form-input widget-content-frame padding-inline-widget flex justify-center items-center">
+                    <div id="turnstile-challenge" class="cf-turnstile"
+                         data-sitekey="{{.TurnstileSiteKey}}"
+                         data-theme="light"
+                         data-callback="onTurnstileSuccess">
+                    </div>
+                </div>
+            </div>
+            {{ end }}
 
             <div class="login-error-message" id="error-message"></div>
 

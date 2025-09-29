@@ -282,9 +282,10 @@ type templateRequestData struct {
 }
 
 type templateData struct {
-	App     *application
-	Page    *page
-	Request templateRequestData
+	App              *application
+	Page             *page
+	Request          templateRequestData
+	TurnstileSiteKey string
 }
 
 func (a *application) populateTemplateRequestData(data *templateRequestData, r *http.Request) {

@@ -17,112 +17,141 @@ const passwordInput = find("#password");
 const errorMessage = find("#error-message");
 const loginButton = find("#login-button");
 const toggleVisibilityButton = find("#toggle-password-visibility");
+let turnstileToken = "";
 
 const state = {
-    lastUsername: "",
-    lastPassword: "",
-    isLoading: false,
-    isRateLimited: false
+  lastUsername: "",
+  lastPassword: "",
+  isLoading: false,
+  isRateLimited: false,
 };
 
 const lang = {
-    showPassword: "Show password",
-    hidePassword: "Hide password",
-    incorrectCredentials: "Incorrect username or password",
-    rateLimited: "Too many login attempts, try again in a few minutes",
-    unknownError: "An error occurred, please try again",
+  showPassword: "Show password",
+  hidePassword: "Hide password",
+  incorrectCredentials: "Incorrect username or password",
+  rateLimited: "Too many login attempts, try again in a few minutes",
+  unknownError: "An error occurred, please try again",
+  captchaError: "Please complete CAPTCHA and refresh the page",
 };
 
 container.clearStyles("display");
 setTimeout(() => usernameInput.focus(), 200);
 
 toggleVisibilityButton
-    .html(showPasswordSVG)
-    .attr("title", lang.showPassword)
-    .on("click", function() {
-        if (passwordInput.type === "password") {
-            passwordInput.type = "text";
-            toggleVisibilityButton.html(hidePasswordSVG).attr("title", lang.hidePassword);
-            return;
-        }
+  .html(showPasswordSVG)
+  .attr("title", lang.showPassword)
+  .on("click", function () {
+    if (passwordInput.type === "password") {
+      passwordInput.type = "text";
+      toggleVisibilityButton
+        .html(hidePasswordSVG)
+        .attr("title", lang.hidePassword);
+      return;
+    }
 
-        passwordInput.type = "password";
-        toggleVisibilityButton.html(showPasswordSVG).attr("title", lang.showPassword);
-    });
+    passwordInput.type = "password";
+    toggleVisibilityButton
+      .html(showPasswordSVG)
+      .attr("title", lang.showPassword);
+  });
 
 function enableLoginButtonIfCriteriaMet() {
-    const usernameValue = usernameInput.value.trim();
-    const passwordValue = passwordInput.value.trim();
+  const usernameValue = usernameInput.value.trim();
+  const passwordValue = passwordInput.value.trim();
 
-    const usernameValid = usernameValue.length >= 3;
-    const passwordValid = passwordValue.length >= 6;
+  const usernameValid = usernameValue.length >= 3;
+  const passwordValid = passwordValue.length >= 6;
 
-    const isUsingLastCredentials =
-           usernameValue === state.lastUsername
-        && passwordValue === state.lastPassword;
+  const isUsingLastCredentials =
+    usernameValue === state.lastUsername &&
+    passwordValue === state.lastPassword;
 
-    loginButton.disabled = !(
-           usernameValid
-        && passwordValid
-        && !isUsingLastCredentials
-        && !state.isLoading
-        && !state.isRateLimited
-    );
+  loginButton.disabled = !(
+    usernameValid &&
+    passwordValid &&
+    !isUsingLastCredentials &&
+    !state.isLoading &&
+    !state.isRateLimited
+  );
 }
 
 usernameInput.on("input", enableLoginButtonIfCriteriaMet);
 passwordInput.on("input", enableLoginButtonIfCriteriaMet);
 
 async function handleLoginAttempt() {
-    state.lastUsername = usernameInput.value;
-    state.lastPassword = passwordInput.value;
-    errorMessage.text("");
+  state.lastUsername = usernameInput.value;
+  state.lastPassword = passwordInput.value;
+  errorMessage.text("");
 
-    loginButton.disable();
-    state.isLoading = true;
+  loginButton.disable();
+  state.isLoading = true;
 
-    const response = await fetch(AUTH_ENDPOINT, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            username: usernameInput.value,
-            password: passwordInput.value
-        }),
+  let turnstileEnabled =
+    window.turnstile != null &&
+    document.getElementById("turnstile-challenge") != null;
+
+  if (turnstileEnabled && turnstileToken === "") {
+    errorMessage.text(lang.captchaError);
+    loginButton.enable();
+    state.isLoading = false;
+    return;
+  }
+
+  let postBody = {
+    username: usernameInput.value,
+    password: passwordInput.value,
+    "cf-turnstile-response": turnstileToken,
+  };
+
+  const response = await fetch(AUTH_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(postBody),
+  });
+
+  state.isLoading = false;
+  if (response.status === 200) {
+    setTimeout(() => {
+      window.location.href = pageData.baseURL + "/";
+    }, 300);
+
+    container.animate({
+      keyframes: [{ offset: 1, transform: "scale(0.95)", opacity: 0 }],
+      options: { duration: 300, easing: "ease", fill: "forwards" },
     });
 
-    state.isLoading = false;
-    if (response.status === 200) {
-        setTimeout(() => { window.location.href = pageData.baseURL + "/"; }, 300);
+    find("footer")?.animate({
+      keyframes: [{ offset: 1, opacity: 0 }],
+      options: { duration: 300, easing: "ease", fill: "forwards", delay: 50 },
+    });
+  } else if (response.status === 401) {
+    errorMessage.text(lang.incorrectCredentials);
+    passwordInput.focus();
+  } else if (response.status === 429) {
+    errorMessage.text(lang.rateLimited);
+    state.isRateLimited = true;
+    const retryAfter = response.headers.get("Retry-After") || 30;
+    setTimeout(() => {
+      state.lastUsername = "";
+      state.lastPassword = "";
+      state.isRateLimited = false;
 
-        container.animate({
-            keyframes: [{ offset: 1, transform: "scale(0.95)", opacity: 0 }],
-            options: { duration: 300, easing: "ease", fill: "forwards" }}
-        );
-
-        find("footer")?.animate({
-            keyframes: [{ offset: 1, opacity: 0 }],
-            options: { duration: 300, easing: "ease", fill: "forwards", delay: 50 }
-        });
-    } else if (response.status === 401) {
-        errorMessage.text(lang.incorrectCredentials);
-        passwordInput.focus();
-    } else if (response.status === 429) {
-        errorMessage.text(lang.rateLimited);
-        state.isRateLimited = true;
-        const retryAfter = response.headers.get("Retry-After") || 30;
-        setTimeout(() => {
-            state.lastUsername = "";
-            state.lastPassword = "";
-            state.isRateLimited = false;
-
-            enableLoginButtonIfCriteriaMet();
-        }, retryAfter * 1000);
-    } else {
-        errorMessage.text(lang.unknownError);
-        passwordInput.focus();
-    }
+      enableLoginButtonIfCriteriaMet();
+    }, retryAfter * 1000);
+  } else if (response.status === 403) {
+    errorMessage.text(lang.captchaError);
+  } else {
+    errorMessage.text(lang.unknownError);
+    passwordInput.focus();
+  }
 }
+
+window.onTurnstileSuccess = function (token) {
+  turnstileToken = token;
+  console.log("Turnstile 成功返回 token:", token);
+};
 
 loginButton.disable().on("click", handleLoginAttempt);

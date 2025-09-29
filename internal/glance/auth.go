@@ -13,6 +13,8 @@ import (
 	"log"
 	mathrand "math/rand/v2"
 	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -47,6 +49,13 @@ const (
 type failedAuthAttempt struct {
 	attempts int
 	first    time.Time
+}
+
+type TurnstileResponse struct {
+	Success     bool     `json:"success"`
+	ChallengeTS string   `json:"challenge_ts"`
+	Hostname    string   `json:"hostname"`
+	ErrorCodes  []string `json:"error-codes,omitempty"`
 }
 
 func generateSessionToken(username string, secret []byte, now time.Time) (string, error) {
@@ -185,13 +194,24 @@ func (a *application) handleAuthenticationAttempt(w http.ResponseWriter, r *http
 	}
 
 	var creds struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username       string `json:"username"`
+		Password       string `json:"password"`
+		TurnstileToken string `json:"cf-turnstile-response"`
 	}
 
 	err = json.Unmarshal(body, &creds)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	ok, err := verifyTurnstile(creds.TurnstileToken, r.RemoteAddr)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
@@ -245,6 +265,32 @@ func (a *application) handleAuthenticationAttempt(w http.ResponseWriter, r *http
 	a.authAttemptsMu.Unlock()
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func verifyTurnstile(token, remoteIP string) (bool, error) {
+	secret := os.Getenv("TURNSTILE_SECRET_KEY")
+	if secret == "" {
+		// Turnstile is not configured, skip
+		return true, nil
+	}
+
+	data := url.Values{}
+	data.Set("secret", secret)
+	data.Set("response", token)
+	data.Set("remoteip", remoteIP)
+
+	resp, err := http.PostForm("https://challenges.cloudflare.com/turnstile/v0/siteverify", data)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	var tr TurnstileResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tr); err != nil {
+		return false, err
+	}
+
+	return tr.Success, nil
 }
 
 func (a *application) isAuthorized(w http.ResponseWriter, r *http.Request) bool {
@@ -326,9 +372,17 @@ func (a *application) handleLoginPageRequest(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	siteKey := os.Getenv("TURNSTILE_SITE_KEY")
+	secretKey := os.Getenv("TURNSTILE_SECRET_KEY")
+
 	data := &templateData{
 		App: a,
 	}
+
+	if siteKey != "" && secretKey != "" {
+		data.TurnstileSiteKey = siteKey
+	}
+
 	a.populateTemplateRequestData(&data.Request, r)
 
 	var responseBytes bytes.Buffer
