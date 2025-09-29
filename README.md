@@ -1,3 +1,12 @@
+**Note: This is a modified fork of [glanceapp/glance](https://github.com/glanceapp/glance).**
+
+## About This Fork
+
+- **Main Modifications:** Integrated Cloudflare Turnstile on the login page for enhanced security.
+- **License:** This project, based on the original work, is distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+  - The original code is Copyright (c) the original glanceapp authors.
+- For the full license text, please see the [LICENSE](LICENSE) file.
+
 <p align="center"><img src="docs/logo.png"></p>
 <h1 align="center">Glance</h1>
 <p align="center">
@@ -17,39 +26,45 @@
 ![](docs/images/readme-main-image.png)
 
 ## Features
+
 ### Various widgets
-* RSS feeds
-* Subreddit posts
-* Hacker News posts
-* Weather forecasts
-* YouTube channel uploads
-* Twitch channels
-* Market prices
-* Docker containers status
-* Server stats
-* Custom widgets
-* [and many more...](docs/configuration.md#configuring-glance)
+
+- RSS feeds
+- Subreddit posts
+- Hacker News posts
+- Weather forecasts
+- YouTube channel uploads
+- Twitch channels
+- Market prices
+- Docker containers status
+- Server stats
+- Custom widgets
+- [and many more...](docs/configuration.md#configuring-glance)
 
 ### Fast and lightweight
-* Low memory usage
-* Few dependencies
-* Minimal vanilla JS
-* Single <20mb binary available for multiple OSs & architectures and just as small Docker container
-* Uncached pages usually load within ~1s (depending on internet speed and number of widgets)
+
+- Low memory usage
+- Few dependencies
+- Minimal vanilla JS
+- Single <20mb binary available for multiple OSs & architectures and just as small Docker container
+- Uncached pages usually load within ~1s (depending on internet speed and number of widgets)
 
 ### Tons of customizability
-* Different layouts
-* As many pages/tabs as you need
-* Numerous configuration options for each widget
-* Multiple styles for some widgets
-* Custom CSS
+
+- Different layouts
+- As many pages/tabs as you need
+- Numerous configuration options for each widget
+- Multiple styles for some widgets
+- Custom CSS
 
 ### Optimized for mobile devices
+
 Because you'll want to take it with you on the go.
 
 ![](docs/images/mobile-preview.png)
 
 ### Themeable
+
 Easily create your own theme by tweaking a few numbers or choose from one of the [already available themes](docs/themes.md).
 
 ![](docs/images/themes-example.png)
@@ -57,7 +72,9 @@ Easily create your own theme by tweaking a few numbers or choose from one of the
 <br>
 
 ## Configuration
+
 Configuration is done through YAML files, to learn more about how the layout works, how to add more pages and how to configure widgets, visit the [configuration documentation](docs/configuration.md#configuring-glance).
+
 <details>
 <summary><strong>Preview example configuration file</strong></summary>
 <br>
@@ -147,6 +164,7 @@ pages:
               - immich-app/immich
               - syncthing/syncthing
 ```
+
 </details>
 
 <br>
@@ -165,18 +183,19 @@ Create a new directory called `glance` as well as the template files within it b
 mkdir glance && cd glance && curl -sL https://github.com/glanceapp/docker-compose-template/archive/refs/heads/main.tar.gz | tar -xzf - --strip-components 2
 ```
 
-*[click here to view the files that will be created](https://github.com/glanceapp/docker-compose-template/tree/main/root)*
+_[click here to view the files that will be created](https://github.com/glanceapp/docker-compose-template/tree/main/root)_
 
 Then, edit the following files as desired:
-* `docker-compose.yml` to configure the port, volumes and other containery things
-* `config/home.yml` to configure the widgets or layout of the home page
-* `config/glance.yml` if you want to change the theme or add more pages
+
+- `docker-compose.yml` to configure the port, volumes and other containery things
+- `config/home.yml` to configure the widgets or layout of the home page
+- `config/glance.yml` if you want to change the theme or add more pages
 
 <details>
 <summary>Other files you may want to edit</summary>
 
-* `.env` to configure environment variables that will be available inside configuration files
-* `assets/user.css` to add custom CSS
+- `.env` to configure environment variables that will be available inside configuration files
+- `assets/user.css` to add custom CSS
 </details>
 
 When ready, run:
@@ -257,8 +276,6 @@ wget https://raw.githubusercontent.com/glanceapp/glance/refs/heads/main/docs/gla
 
 Download and extract the executable from the [latest release](https://github.com/glanceapp/glance/releases/latest) (most likely the file called `glance-windows-amd64.zip` if you're on a 64-bit system) and place it in a folder of your choice. Then, create a new text file called `glance.yml` in the same folder and paste the content from [here](https://raw.githubusercontent.com/glanceapp/glance/refs/heads/main/docs/glance.yml) in it. You should then be able to run the executable and access the dashboard by visiting `http://localhost:8080` in your browser.
 
-
-
 <hr>
 </details>
 
@@ -267,33 +284,44 @@ Download and extract the executable from the [latest release](https://github.com
 <br>
 
 Glance can also be installed through the following 3rd party channels:
-* [Proxmox VE Helper Script](https://community-scripts.github.io/ProxmoxVE/scripts?id=glance)
-* [NixOS package](https://search.nixos.org/packages?channel=unstable&show=glance)
-* [Coolify.io](https://coolify.io/docs/services/glance/)
+
+- [Proxmox VE Helper Script](https://community-scripts.github.io/ProxmoxVE/scripts?id=glance)
+- [NixOS package](https://search.nixos.org/packages?channel=unstable&show=glance)
+- [Coolify.io](https://coolify.io/docs/services/glance/)
 
 <hr>
+</details>
+
+<details>
+<summary><strong>Turnstile</strong></summary>
+<br>
+Set TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY environment variable to enable turnstile.
 </details>
 
 <br>
 
 ## Common issues
+
 <details>
 <summary><strong>Requests timing out</strong></summary>
 
 The most common cause of this is when using Pi-Hole, AdGuard Home or other ad-blocking DNS services, which by default have a fairly low rate limit. Depending on the number of widgets you have in a single page, this limit can very easily be exceeded. To fix this, increase the rate limit in the settings of your DNS service.
 
 If using Podman, in some rare cases the timeout can be caused by an unknown issue, in which case it may be resolved by adding the following to the bottom of your `docker-compose.yml` file:
+
 ```yaml
 networks:
   podman:
     external: true
 ```
+
 </details>
 
 <details>
 <summary><strong>Broken layout for markets, bookmarks or other widgets</strong></summary>
 
 This is almost always caused by the browser extension Dark Reader. To fix this, disable dark mode for the domain where Glance is hosted.
+
 </details>
 
 <details>
@@ -306,6 +334,7 @@ The most common cause of this is having a `pages` key in your `glance.yml` and t
 <br>
 
 ## FAQ
+
 <details>
 <summary><strong>Does the information on the page update automatically?</strong></summary>
 No, a page refresh is required to update the information. Some things do dynamically update where it makes sense, like the clock widget and the relative time showing how long ago something happened.
@@ -320,10 +349,11 @@ No requests are made periodically in the background, information is only fetched
 <summary><strong>Can I create my own widgets?</strong></summary>
 
 Yes, there are multiple ways to create custom widgets:
-* `iframe` widget - allows you to embed things from other websites
-* `html` widget - allows you to insert your own static HTML
-* `extension` widget - fetch HTML from a URL
-* `custom-api` widget - fetch JSON from a URL and render it using custom HTML
+
+- `iframe` widget - allows you to embed things from other websites
+- `html` widget - allows you to insert your own static HTML
+- `extension` widget - fetch HTML from a URL
+- `custom-api` widget - fetch JSON from a URL and render it using custom HTML
 </details>
 
 <details>
@@ -340,9 +370,9 @@ Yes, the title of all widgets can be changed by specifying the `title` property 
 
 - type: videos
   title: My custom title
-
 # and so on for all widgets...
 ```
+
 </details>
 
 <br>
@@ -353,9 +383,9 @@ New feature suggestions are always welcome and will be considered, though please
 
 Feature requests are tagged with one of the following:
 
-* [Roadmap](https://github.com/glanceapp/glance/labels/roadmap) - will be implemented in a future release
-* [Backlog](https://github.com/glanceapp/glance/labels/backlog) - may be implemented in the future but needs further feedback or interest from the community
-* [Icebox](https://github.com/glanceapp/glance/labels/icebox) - no plans to implement as it doesn't currently align with the project's goals or capabilities, may be revised at a later date
+- [Roadmap](https://github.com/glanceapp/glance/labels/roadmap) - will be implemented in a future release
+- [Backlog](https://github.com/glanceapp/glance/labels/backlog) - may be implemented in the future but needs further feedback or interest from the community
+- [Icebox](https://github.com/glanceapp/glance/labels/icebox) - no plans to implement as it doesn't currently align with the project's goals or capabilities, may be revised at a later date
 
 <br>
 
@@ -381,13 +411,14 @@ To build for a specific OS and architecture, run:
 GOOS=linux GOARCH=amd64 go build -o build/glance .
 ```
 
-[*click here for a full list of GOOS and GOARCH combinations*](https://go.dev/doc/install/source#:~:text=$GOOS%20and%20$GOARCH)
+[_click here for a full list of GOOS and GOARCH combinations_](https://go.dev/doc/install/source#:~:text=$GOOS%20and%20$GOARCH)
 
 Alternatively, if you just want to run the app without creating a binary, like when you're testing out changes, you can run:
 
 ```bash
 go run .
 ```
+
 <hr>
 </details>
 
@@ -399,7 +430,7 @@ Requirements: [Docker](https://docs.docker.com/engine/install/)
 
 To build the project and image using just Docker, run:
 
-*(replace `owner` with your name or organization)*
+_(replace `owner` with your name or organization)_
 
 ```bash
 docker build -t owner/glance:latest .
@@ -418,15 +449,15 @@ docker push owner/glance:latest
 
 ## Contributing guidelines
 
-* Before working on a new feature it's preferable to submit a feature request first and state that you'd like to implement it yourself
-* Please don't submit PRs for feature requests that are either in the roadmap<sup>[1]</sup>, backlog<sup>[2]</sup> or icebox<sup>[3]</sup>
-* Use `dev` for the base branch if you're adding new features or fixing bugs, otherwise use `main`
-* Avoid introducing new dependencies
-* Avoid making backwards-incompatible configuration changes
-* Avoid introducing new colors or hard-coding colors, use the standard `primary`, `positive` and `negative`
-* For icons, try to use [heroicons](https://heroicons.com/) where applicable
-* Provide a screenshot of the changes if UI related where possible
-* No `package.json`
+- Before working on a new feature it's preferable to submit a feature request first and state that you'd like to implement it yourself
+- Please don't submit PRs for feature requests that are either in the roadmap<sup>[1]</sup>, backlog<sup>[2]</sup> or icebox<sup>[3]</sup>
+- Use `dev` for the base branch if you're adding new features or fixing bugs, otherwise use `main`
+- Avoid introducing new dependencies
+- Avoid making backwards-incompatible configuration changes
+- Avoid introducing new colors or hard-coding colors, use the standard `primary`, `positive` and `negative`
+- For icons, try to use [heroicons](https://heroicons.com/) where applicable
+- Provide a screenshot of the changes if UI related where possible
+- No `package.json`
 
 <details>
 <summary><strong><sup>[1] [2] [3]</sup></strong></summary>
